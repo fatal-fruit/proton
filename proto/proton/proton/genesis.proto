@@ -1,0 +1,12 @@
+syntax = "proto3";
+package proton.proton;
+
+import "gogoproto/gogo.proto";
+import "proton/proton/params.proto";
+
+option go_package = "proton/x/proton/types";
+
+// GenesisState defines the proton module's genesis state.
+message GenesisState {
+  Params params = 1 [(gogoproto.nullable) = false];
+}

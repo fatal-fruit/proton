@@ -1,0 +1,7 @@
+syntax = "proto3";
+package proton.proton;
+
+option go_package = "proton/x/proton/types";
+
+// Msg defines the Msg service.
+service Msg {}
