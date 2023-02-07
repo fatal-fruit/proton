@@ -6,8 +6,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/server/api"
 	"github.com/cosmos/cosmos-sdk/server/config"
 	"github.com/cosmos/cosmos-sdk/store/streaming"
+	"github.com/cosmos/cosmos-sdk/testutil/testdata_pulsar"
 	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
-	ibchost "github.com/cosmos/ibc-go/v6/modules/core/24-host"
+	//ibchost "github.com/cosmos/ibc-go/v7/modules/core/24-host"
 	dbm "github.com/tendermint/tm-db"
 	"io"
 	"os"
@@ -23,6 +24,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
+	authsims "github.com/cosmos/cosmos-sdk/x/auth/simulation"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/vesting"
 	authzkeeper "github.com/cosmos/cosmos-sdk/x/authz/keeper"
@@ -43,6 +45,7 @@ import (
 	feegrantmodule "github.com/cosmos/cosmos-sdk/x/feegrant/module"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	"github.com/cosmos/cosmos-sdk/x/gov"
+	govclient "github.com/cosmos/cosmos-sdk/x/gov/client"
 	govkeeper "github.com/cosmos/cosmos-sdk/x/gov/keeper"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	groupkeeper "github.com/cosmos/cosmos-sdk/x/group/keeper"
@@ -52,6 +55,7 @@ import (
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	nftkeeper "github.com/cosmos/cosmos-sdk/x/nft/keeper"
 	"github.com/cosmos/cosmos-sdk/x/params"
+	paramsclient "github.com/cosmos/cosmos-sdk/x/params/client"
 	paramskeeper "github.com/cosmos/cosmos-sdk/x/params/keeper"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
@@ -59,17 +63,24 @@ import (
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/cosmos/cosmos-sdk/x/upgrade"
+	upgradeclient "github.com/cosmos/cosmos-sdk/x/upgrade/client"
 	upgradekeeper "github.com/cosmos/cosmos-sdk/x/upgrade/keeper"
-	icahostkeeper "github.com/cosmos/ibc-go/V7/modules/apps/27-interchain-accounts/host/keeper"
-	ica "github.com/cosmos/ibc-go/v6/modules/apps/27-interchain-accounts"
-	icatypes "github.com/cosmos/ibc-go/v6/modules/apps/27-interchain-accounts/types"
-	"github.com/cosmos/ibc-go/v6/modules/apps/transfer"
-	ibctransferkeeper "github.com/cosmos/ibc-go/v6/modules/apps/transfer/keeper"
-	ibctransfertypes "github.com/cosmos/ibc-go/v6/modules/apps/transfer/types"
-	ibc "github.com/cosmos/ibc-go/v6/modules/core"
-	ibckeeper "github.com/cosmos/ibc-go/v6/modules/core/keeper"
+	ica "github.com/cosmos/ibc-go/v7/modules/apps/27-interchain-accounts"
+	icahostkeeper "github.com/cosmos/ibc-go/v7/modules/apps/27-interchain-accounts/host/keeper"
+	icatypes "github.com/cosmos/ibc-go/v7/modules/apps/27-interchain-accounts/types"
+	"github.com/cosmos/ibc-go/v7/modules/apps/transfer"
+	ibctransferkeeper "github.com/cosmos/ibc-go/v7/modules/apps/transfer/keeper"
+	ibctransfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
+	ibc "github.com/cosmos/ibc-go/v7/modules/core"
+	ibckeeper "github.com/cosmos/ibc-go/v7/modules/core/keeper"
 	"github.com/tendermint/tendermint/libs/log"
-	protonmodule "proton/x/proton"
+)
+
+const (
+	AccountAddressPrefix = "proton"
+	Name                 = "proton"
+	// BondDenom is the staking token's denomination
+	BondDenom = "uproton"
 )
 
 var (
@@ -88,7 +99,14 @@ var (
 		staking.AppModuleBasic{},
 		mint.AppModuleBasic{},
 		distr.AppModuleBasic{},
-		gov.NewAppModuleBasic(getGovProposalHandlers()),
+		gov.NewAppModuleBasic(
+			[]govclient.ProposalHandler{
+				paramsclient.ProposalHandler,
+				upgradeclient.LegacyProposalHandler,
+				upgradeclient.LegacyCancelProposalHandler,
+			},
+		),
+		//gov.NewAppModuleBasic(getGovProposalHandlers()),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
 		slashing.AppModuleBasic{},
@@ -100,7 +118,6 @@ var (
 		transfer.AppModuleBasic{},
 		ica.AppModuleBasic{},
 		vesting.AppModuleBasic{},
-		protonmodule.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -131,13 +148,6 @@ type ProtonApp struct {
 	txConfig          client.TxConfig
 	interfaceRegistry codectypes.InterfaceRegistry
 
-	invCheckPeriod uint
-
-	// keys to access the substores
-	keys    map[string]*storetypes.KVStoreKey
-	tkeys   map[string]*storetypes.TransientStoreKey
-	memKeys map[string]*storetypes.MemoryStoreKey
-
 	// keepers
 	AccountKeeper         authkeeper.AccountKeeper
 	AuthzKeeper           authzkeeper.Keeper
@@ -164,11 +174,6 @@ type ProtonApp struct {
 	ScopedIBCKeeper      capabilitykeeper.ScopedKeeper
 	ScopedTransferKeeper capabilitykeeper.ScopedKeeper
 	ScopedICAHostKeeper  capabilitykeeper.ScopedKeeper
-
-	//ProtonKeeper protonmodulekeeper.Keeper
-
-	// mm is the module manager
-	mm *module.Manager
 
 	// sm is the simulation manager
 	sm *module.SimulationManager
@@ -243,18 +248,18 @@ func NewProtonApp(
 
 	//ICAModule      ica.AppModule
 	//TransferModule transfer.AppModule
-	ibcKeeper := ibckeeper.NewKeeper(
-		app.appCodec,
-		app.keys[ibchost.StoreKey],
-		app.GetSubspace(ibchost.ModuleName),
-		app.StakingKeeper,
-		app.UpgradeKeeper,
-		app.ScopedIBCKeeper,
-	)
+	//ibcKeeper := ibckeeper.NewKeeper(
+	//	app.appCodec,
+	//	app.keys[ibchost.StoreKey],
+	//	app.GetSubspace(ibchost.ModuleName),
+	//	app.StakingKeeper,
+	//	app.UpgradeKeeper,
+	//	app.ScopedIBCKeeper,
+	//)
 
-	ibcModule := ibc.NewAppModule(ibcKeeper)
-
-	app.RegisterModules(ibcModule)
+	//ibcModule := ibc.NewAppModule(ibcKeeper)
+	//
+	//app.RegisterModules(ibcModule)
 
 	// load state streaming if enabled
 	if _, _, err := streaming.LoadStreamingServices(app.App.BaseApp, appOpts, app.appCodec, logger, app.kvStoreKeys()); err != nil {
@@ -262,6 +267,33 @@ func NewProtonApp(
 		os.Exit(1)
 	}
 
+	/****  Module Options ****/
+
+	app.ModuleManager.RegisterInvariants(app.CrisisKeeper)
+
+	// RegisterUpgradeHandlers is used for registering any on-chain upgrades.
+	// TODO: Refactor and add
+	//app.RegisterUpgradeHandlers()
+
+	// add test gRPC service for testing gRPC queries in isolation
+	testdata_pulsar.RegisterQueryServer(app.GRPCQueryRouter(), testdata_pulsar.QueryImpl{})
+
+	// create the simulation manager and define the order of the modules for deterministic simulations
+	//
+	// NOTE: this is not required apps that don't use the simulator for fuzz testing
+	// transactions
+	overrideModules := map[string]module.AppModuleSimulation{
+		authtypes.ModuleName: auth.NewAppModule(app.appCodec, app.AccountKeeper, authsims.RandomGenesisAccounts, app.GetSubspace(authtypes.ModuleName)),
+	}
+	app.sm = module.NewSimulationManagerFromAppModules(app.ModuleManager.Modules, overrideModules)
+
+	app.sm.RegisterStoreDecoders()
+
+	if err := app.Load(loadLatest); err != nil {
+		panic(err)
+	}
+
+	return app
 }
 
 func (app *ProtonApp) GetSubspace(moduleName string) paramstypes.Subspace {
@@ -278,6 +310,52 @@ func (app *ProtonApp) RegisterAPIRoutes(apiSvr *api.Server, apiConfig config.API
 		panic(err)
 	}
 }
+
+// LegacyAmino returns ProtonApp's amino codec.
+//
+// NOTE: This is solely to be used for testing purposes as it may be desirable
+// for modules to register their own custom testing types.
+func (app *ProtonApp) LegacyAmino() *codec.LegacyAmino {
+	return app.legacyAmino
+}
+
+// AppCodec returns ProtonApp's app codec.
+//
+// NOTE: This is solely to be used for testing purposes as it may be desirable
+// for modules to register their own custom testing types.
+func (app *ProtonApp) AppCodec() codec.Codec {
+	return app.appCodec
+}
+
+// InterfaceRegistry returns ProtonApp's InterfaceRegistry
+func (app *ProtonApp) InterfaceRegistry() codectypes.InterfaceRegistry {
+	return app.interfaceRegistry
+}
+
+// TxConfig returns ProtonApp's TxConfig
+func (app *ProtonApp) TxConfig() client.TxConfig {
+	return app.txConfig
+}
+
+// GetKey returns the KVStoreKey for the provided store key.
+//
+// NOTE: This is solely to be used for testing purposes.
+func (app *ProtonApp) GetKey(storeKey string) *storetypes.KVStoreKey {
+	sk := app.UnsafeFindStoreKey(storeKey)
+	kvStoreKey, ok := sk.(*storetypes.KVStoreKey)
+	if !ok {
+		return nil
+	}
+	return kvStoreKey
+}
+
+// SimulationManager implements the SimulationApp interface
+func (app *ProtonApp) SimulationManager() *module.SimulationManager {
+	return app.sm
+}
+
+// Name returns the name of the App
+func (app *ProtonApp) Name() string { return app.BaseApp.Name() }
 
 // GetMaccPerms returns a copy of the module account permissions
 //

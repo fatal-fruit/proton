@@ -47,9 +47,9 @@ import (
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
-	icatypes "github.com/cosmos/ibc-go/v6/modules/apps/27-interchain-accounts/types"
-	ibctransfertypes "github.com/cosmos/ibc-go/v6/modules/apps/transfer/types"
-	ibchost "github.com/cosmos/ibc-go/v6/modules/core/24-host"
+	icatypes "github.com/cosmos/ibc-go/v7/modules/apps/27-interchain-accounts/types"
+	ibctransfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
+	ibchost "github.com/cosmos/ibc-go/v7/modules/core/24-host"
 )
 
 var (
@@ -64,7 +64,7 @@ var (
 		capabilitytypes.ModuleName, authtypes.ModuleName, banktypes.ModuleName,
 		distrtypes.ModuleName, stakingtypes.ModuleName, slashingtypes.ModuleName, govtypes.ModuleName,
 		minttypes.ModuleName, crisistypes.ModuleName, genutiltypes.ModuleName, ibctransfertypes.ModuleName,
-		ibchost.ModuleName, icatypes.ModuleName, evidencetypes.ModuleName, authz.ModuleName,
+		ibchost.SubModuleName, icatypes.ModuleName, evidencetypes.ModuleName, authz.ModuleName,
 		feegrant.ModuleName, nft.ModuleName, group.ModuleName, paramstypes.ModuleName, upgradetypes.ModuleName,
 		vestingtypes.ModuleName, consensustypes.ModuleName,
 	}
@@ -79,13 +79,13 @@ var (
 		upgradetypes.ModuleName, capabilitytypes.ModuleName, minttypes.ModuleName, distrtypes.ModuleName,
 		slashingtypes.ModuleName, evidencetypes.ModuleName, stakingtypes.ModuleName, authtypes.ModuleName,
 		banktypes.ModuleName, govtypes.ModuleName, crisistypes.ModuleName, ibctransfertypes.ModuleName,
-		ibchost.ModuleName, icatypes.ModuleName, genutiltypes.ModuleName, authz.ModuleName, feegrant.ModuleName,
+		ibchost.SubModuleName, icatypes.ModuleName, genutiltypes.ModuleName, authz.ModuleName, feegrant.ModuleName,
 		nft.ModuleName, group.ModuleName, paramstypes.ModuleName, vestingtypes.ModuleName, consensustypes.ModuleName,
 	}
 
 	endBlockers = []string{
 		crisistypes.ModuleName, govtypes.ModuleName, stakingtypes.ModuleName, ibctransfertypes.ModuleName,
-		ibchost.ModuleName, icatypes.ModuleName, capabilitytypes.ModuleName, authtypes.ModuleName, banktypes.ModuleName,
+		ibchost.SubModuleName, icatypes.ModuleName, capabilitytypes.ModuleName, authtypes.ModuleName, banktypes.ModuleName,
 		distrtypes.ModuleName, slashingtypes.ModuleName, minttypes.ModuleName, genutiltypes.ModuleName,
 		evidencetypes.ModuleName, authz.ModuleName, feegrant.ModuleName, nft.ModuleName, group.ModuleName,
 		paramstypes.ModuleName, consensustypes.ModuleName, upgradetypes.ModuleName, vestingtypes.ModuleName,
@@ -122,7 +122,7 @@ var (
 			{
 				Name: "runtime",
 				Config: appconfig.WrapAny(&runtimev1alpha1.Module{
-					AppName:       "SimApp",
+					AppName:       Name,
 					BeginBlockers: beginBlockers,
 					EndBlockers:   endBlockers,
 					OverrideStoreKeys: []*runtimev1alpha1.StoreKeyConfig{
