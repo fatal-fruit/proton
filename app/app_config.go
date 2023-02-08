@@ -24,6 +24,8 @@ import (
 	upgrademodulev1 "cosmossdk.io/api/cosmos/upgrade/module/v1"
 	vestingmodulev1 "cosmossdk.io/api/cosmos/vesting/module/v1"
 	"cosmossdk.io/core/appconfig"
+	ibcfeetypes "github.com/cosmos/ibc-go/v7/modules/apps/29-fee/types"
+	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"time"
 
@@ -63,10 +65,10 @@ var (
 	genesisModuleOrder = []string{
 		capabilitytypes.ModuleName, authtypes.ModuleName, banktypes.ModuleName,
 		distrtypes.ModuleName, stakingtypes.ModuleName, slashingtypes.ModuleName, govtypes.ModuleName,
-		minttypes.ModuleName, crisistypes.ModuleName, genutiltypes.ModuleName, ibctransfertypes.ModuleName,
-		ibchost.SubModuleName, icatypes.ModuleName, evidencetypes.ModuleName, authz.ModuleName,
-		feegrant.ModuleName, nft.ModuleName, group.ModuleName, paramstypes.ModuleName, upgradetypes.ModuleName,
-		vestingtypes.ModuleName, consensustypes.ModuleName,
+		minttypes.ModuleName, crisistypes.ModuleName, ibcexported.ModuleName, genutiltypes.ModuleName,
+		ibctransfertypes.ModuleName, icatypes.ModuleName, ibcfeetypes.ModuleName, evidencetypes.ModuleName,
+		authz.ModuleName, feegrant.ModuleName, nft.ModuleName, group.ModuleName, paramstypes.ModuleName,
+		upgradetypes.ModuleName, vestingtypes.ModuleName, consensustypes.ModuleName,
 	}
 
 	/*
@@ -77,18 +79,22 @@ var (
 	*/
 	beginBlockers = []string{
 		upgradetypes.ModuleName, capabilitytypes.ModuleName, minttypes.ModuleName, distrtypes.ModuleName,
-		slashingtypes.ModuleName, evidencetypes.ModuleName, stakingtypes.ModuleName, authtypes.ModuleName,
-		banktypes.ModuleName, govtypes.ModuleName, crisistypes.ModuleName, ibctransfertypes.ModuleName,
-		ibchost.SubModuleName, icatypes.ModuleName, genutiltypes.ModuleName, authz.ModuleName, feegrant.ModuleName,
-		nft.ModuleName, group.ModuleName, paramstypes.ModuleName, vestingtypes.ModuleName, consensustypes.ModuleName,
+		slashingtypes.ModuleName, evidencetypes.ModuleName, stakingtypes.ModuleName, ibcexported.ModuleName,
+		authtypes.ModuleName, ibctransfertypes.ModuleName, banktypes.ModuleName, govtypes.ModuleName,
+		crisistypes.ModuleName, ibctransfertypes.ModuleName, ibchost.SubModuleName, icatypes.ModuleName,
+		genutiltypes.ModuleName, authz.ModuleName, feegrant.ModuleName, nft.ModuleName, group.ModuleName,
+		paramstypes.ModuleName, vestingtypes.ModuleName, icatypes.ModuleName, ibcfeetypes.ModuleName,
+		consensustypes.ModuleName,
 	}
 
 	endBlockers = []string{
-		crisistypes.ModuleName, govtypes.ModuleName, stakingtypes.ModuleName, ibctransfertypes.ModuleName,
-		ibchost.SubModuleName, icatypes.ModuleName, capabilitytypes.ModuleName, authtypes.ModuleName, banktypes.ModuleName,
-		distrtypes.ModuleName, slashingtypes.ModuleName, minttypes.ModuleName, genutiltypes.ModuleName,
-		evidencetypes.ModuleName, authz.ModuleName, feegrant.ModuleName, nft.ModuleName, group.ModuleName,
-		paramstypes.ModuleName, consensustypes.ModuleName, upgradetypes.ModuleName, vestingtypes.ModuleName,
+		crisistypes.ModuleName, govtypes.ModuleName, stakingtypes.ModuleName, ibcexported.ModuleName,
+		ibctransfertypes.ModuleName, ibchost.SubModuleName, icatypes.ModuleName, capabilitytypes.ModuleName,
+		authtypes.ModuleName, banktypes.ModuleName, distrtypes.ModuleName, slashingtypes.ModuleName,
+		minttypes.ModuleName, genutiltypes.ModuleName, evidencetypes.ModuleName, authz.ModuleName,
+		feegrant.ModuleName, nft.ModuleName, group.ModuleName, paramstypes.ModuleName, consensustypes.ModuleName,
+		upgradetypes.ModuleName, vestingtypes.ModuleName, icatypes.ModuleName, ibcfeetypes.ModuleName,
+		consensustypes.ModuleName,
 	}
 
 	// module account permissions
