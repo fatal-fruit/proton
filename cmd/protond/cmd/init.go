@@ -90,6 +90,7 @@ func InitCmd(mbm module.BasicManager, defaultNodeHome string) *cobra.Command {
 			if err = configureStaking(appGenState, clientCtx, app.BondDenom); err != nil {
 				return err
 			}
+
 			if err = configureGov(appGenState, clientCtx, app.BondDenom); err != nil {
 				return err
 			}
@@ -200,7 +201,7 @@ func configureGov(appGenState map[string]json.RawMessage, ctx client.Context, de
 	if err != nil {
 		return err
 	}
-	govGenesis.Params.MinDeposit = append(govGenesis.DepositParams.MinDeposit, sdk.NewCoin(denom, sdk.NewInt(10000000)))
+	govGenesis.Params.MinDeposit = []sdk.Coin{sdk.NewCoin(denom, sdk.NewInt(10000000))}
 	modifiedGovStr, err := ctx.Codec.MarshalJSON(&govGenesis)
 	if err != nil {
 		return err

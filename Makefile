@@ -147,13 +147,13 @@ format:
 
 start-localnet: build
 	rm -rf ~/.protond-liveness
-	./build/protond init liveness --chain-id liveness --staking-bond-denom uproton --home ~/.protond-liveness
+	./build/protond init liveness --chain-id proton-1 --default-denom uproton --home ~/.protond-liveness
 	./build/protond config chain-id proton-1 --home ~/.protond-liveness
 	./build/protond config keyring-backend test --home ~/.protond-liveness
 	./build/protond keys add val --home ~/.protond-liveness
-	./build/protond add-genesis-account val 10000000000000000000000000uproton --home ~/.protond-liveness --keyring-backend test
-	./build/protond gentx val 1000000000uproton --home ~/.protond-liveness --chain-id proton-1
-	./build/protond collect-gentxs --home ~/.protond-liveness
+	./build/protond genesis add-genesis-account val 10000000000000000000000000uproton --home ~/.protond-liveness --keyring-backend test
+	./build/protond genesis gentx val 1000000000uproton --chain-id proton-1 --home ~/.protond-liveness
+	./build/protond genesis collect-gentxs --home ~/.protond-liveness
 	sed -i.bak'' 's/minimum-gas-prices = ""/minimum-gas-prices = "0uproton"/' ~/.protond-liveness/config/app.toml
 	./build/protond start --home ~/.protond-liveness --x-crisis-skip-assert-invariants
 

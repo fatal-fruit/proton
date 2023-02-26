@@ -6,17 +6,16 @@ import (
 	"proton/app"
 )
 
-func initSDKConfig() {
+func initSDKConfig(config *sdk.Config) {
 	// Set prefixes
-	accountPubKeyPrefix := app.AccountAddressPrefix + "pub"
-	validatorAddressPrefix := app.AccountAddressPrefix + "valoper"
-	validatorPubKeyPrefix := app.AccountAddressPrefix + "valoperpub"
-	consNodeAddressPrefix := app.AccountAddressPrefix + "valcons"
-	consNodePubKeyPrefix := app.AccountAddressPrefix + "valconspub"
+	accountPubKeyPrefix := app.Bech32AddressPrefix + "pub"
+	validatorAddressPrefix := app.Bech32AddressPrefix + "valoper"
+	validatorPubKeyPrefix := app.Bech32AddressPrefix + "valoperpub"
+	consNodeAddressPrefix := app.Bech32AddressPrefix + "valcons"
+	consNodePubKeyPrefix := app.Bech32AddressPrefix + "valconspub"
 
 	// Set and seal config
-	config := sdk.GetConfig()
-	config.SetBech32PrefixForAccount(app.AccountAddressPrefix, accountPubKeyPrefix)
+	config.SetBech32PrefixForAccount(app.Bech32AddressPrefix, accountPubKeyPrefix)
 	config.SetBech32PrefixForValidator(validatorAddressPrefix, validatorPubKeyPrefix)
 	config.SetBech32PrefixForConsensusNode(consNodeAddressPrefix, consNodePubKeyPrefix)
 	config.Seal()
