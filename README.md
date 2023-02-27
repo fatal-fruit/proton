@@ -1,10 +1,10 @@
 # Proton
-**Proton** is a sample blockchain app built using Cosmos SDK `v0.47`, IBC `v7`, and Tendermint `v0.34.24`
+**Proton** is a sample blockchain app built using Cosmos SDK `v0.47.0-rc2`, IBC `v7.0.0-rc0`, and Tendermint `v0.37.0-rc2`
 
 ## Get started
 
 ### Prerequisites
-- Go `1.18`
+- Go `1.19`
 
 ### Build/Install
 ```shell
