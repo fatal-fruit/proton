@@ -4,6 +4,7 @@ package app
 
 import (
 	"cosmossdk.io/depinject"
+	dbm "github.com/cometbft/cometbft-db"
 	"github.com/cosmos/cosmos-sdk/server"
 	"github.com/cosmos/cosmos-sdk/server/api"
 	"github.com/cosmos/cosmos-sdk/server/config"
@@ -11,11 +12,11 @@ import (
 	"github.com/cosmos/cosmos-sdk/testutil/testdata_pulsar"
 	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	ibcfee "github.com/cosmos/ibc-go/v7/modules/apps/29-fee"
-	dbm "github.com/tendermint/tm-db"
 	"io"
 	"os"
 	"path/filepath"
 
+	"github.com/cometbft/cometbft/libs/log"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -76,7 +77,6 @@ import (
 	ibctransfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
 	ibc "github.com/cosmos/ibc-go/v7/modules/core"
 	ibckeeper "github.com/cosmos/ibc-go/v7/modules/core/keeper"
-	"github.com/tendermint/tendermint/libs/log"
 
 	icacontroller "github.com/cosmos/ibc-go/v7/modules/apps/27-interchain-accounts/controller"
 	icacontrollerkeeper "github.com/cosmos/ibc-go/v7/modules/apps/27-interchain-accounts/controller/keeper"
