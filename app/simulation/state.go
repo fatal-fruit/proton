@@ -1,4 +1,4 @@
-package app
+package simulation
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"proton/app"
 	"time"
 
 	tmjson "github.com/cometbft/cometbft/libs/json"
@@ -148,7 +149,7 @@ func AppStateRandomizedFn(
 	accs []simtypes.Account, genesisTimestamp time.Time, appParams simtypes.AppParams,
 ) (json.RawMessage, []simtypes.Account) {
 	numAccs := int64(len(accs))
-	genesisState := ModuleBasics.DefaultGenesis(cdc)
+	genesisState := app.ModuleBasics.DefaultGenesis(cdc)
 
 	// generate a random amount of initial stake coins and a random initial
 	// number of bonded accounts
@@ -214,7 +215,7 @@ func AppStateFromGenesisFileFn(r io.Reader, cdc codec.JSONCodec, genesisFile str
 		panic(err)
 	}
 
-	var appState GenesisState
+	var appState app.GenesisState
 	err = json.Unmarshal(genesis.AppState, &appState)
 	if err != nil {
 		panic(err)
