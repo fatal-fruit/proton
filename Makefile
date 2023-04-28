@@ -97,8 +97,8 @@ build: enforce-go-version
 
 enforce-go-version:
 	@echo "Go version: $(GO_MAJOR_VERSION).$(GO_MINOR_VERSION)"
-ifneq ($(GO_MINOR_VERSION),19)
-	@echo "Go version 1.19 is required"
+ifneq ($(GO_MINOR_VERSION),20)
+	@echo "Go version 1.20 is required"
 	@exit 1
 endif
 
