@@ -6,8 +6,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/server"
 	svrcmd "github.com/cosmos/cosmos-sdk/server/cmd"
 
-	"proton/app"
-	"proton/cmd/protond/cmd"
+	"github.com/fatal-fruit/proton/app"
+	"github.com/fatal-fruit/proton/cmd/protond/cmd"
 )
 
 func main() {

@@ -338,9 +338,6 @@ func NewAppKeeper(
 
 	// Set IBC Keepers
 
-	// Create IBC Router
-	ibcRouter := porttypes.NewRouter()
-
 	// Create Transfer Stack
 	var transferStack porttypes.IBCModule
 	transferStack = transfer.NewIBCModule(appKeepers.TransferKeeper)
@@ -363,7 +360,7 @@ func NewAppKeeper(
 	icaHostStack = ibcfee.NewIBCMiddleware(icaHostStack, appKeepers.IBCFeeKeeper)
 
 	// Add host, controller & ica auth modules to IBC router
-	ibcRouter = porttypes.NewRouter().
+	ibcRouter := porttypes.NewRouter().
 		AddRoute(ibctransfertypes.ModuleName, transferStack).
 		AddRoute(icacontrollertypes.SubModuleName, icaControllerStack).
 		AddRoute(icahosttypes.SubModuleName, icaHostStack)
@@ -390,7 +387,7 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(minttypes.ModuleName)
 	paramsKeeper.Subspace(distrtypes.ModuleName)
 	paramsKeeper.Subspace(slashingtypes.ModuleName)
-	paramsKeeper.Subspace(govtypes.ModuleName).WithKeyTable(govv1.ParamKeyTable())
+	paramsKeeper.Subspace(govtypes.ModuleName).WithKeyTable(govv1.ParamKeyTable()) //nolint: staticcheck // SA1019
 	paramsKeeper.Subspace(crisistypes.ModuleName)
 	paramsKeeper.Subspace(ibctransfertypes.ModuleName)
 	paramsKeeper.Subspace(ibcexported.ModuleName)

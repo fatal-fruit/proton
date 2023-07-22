@@ -26,7 +26,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/server/config"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	"github.com/cosmos/cosmos-sdk/store/streaming"
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
@@ -38,7 +37,7 @@ import (
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/spf13/cast"
 
-	"proton/app/keepers"
+	"github.com/fatal-fruit/proton/app/keepers"
 )
 
 const (
@@ -64,11 +63,6 @@ type ProtonApp struct {
 	appCodec          codec.Codec
 	txConfig          client.TxConfig
 	interfaceRegistry types.InterfaceRegistry
-
-	// keys to access the substores
-	keys    map[string]*storetypes.KVStoreKey
-	tkeys   map[string]*storetypes.TransientStoreKey
-	memKeys map[string]*storetypes.MemoryStoreKey
 
 	// the module manager
 	ModuleManager *module.Manager
@@ -96,11 +90,10 @@ func NewProtonApp(
 	traceStore io.Writer,
 	loadLatest bool,
 	appOpts servertypes.AppOptions,
+	encodingConfig EncodingConfig,
 	baseAppOptions ...func(*baseapp.BaseApp),
 ) *ProtonApp {
-	encodingConfig := MakeEncodingConfig()
-
-	appCodec, legacyAmino := encodingConfig.Codec, encodingConfig.Amino
+	appCodec, legacyAmino := encodingConfig.Marshaler, encodingConfig.Amino
 	interfaceRegistry := encodingConfig.InterfaceRegistry
 	txConfig := encodingConfig.TxConfig
 
@@ -150,7 +143,7 @@ func NewProtonApp(
 
 	// NOTE: Any module instantiated in the module manager that is later modified
 	// must be passed by reference here.
-	app.ModuleManager = module.NewManager(appModules(app, encodingConfig, skipGenesisInvariants, appCodec)...)
+	app.ModuleManager = module.NewManager(appModules(app, encodingConfig, skipGenesisInvariants)...)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
 	// there is nothing left over in the validator fee pool, so as to keep the

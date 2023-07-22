@@ -28,31 +28,19 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"proton/app"
-	appparams "proton/app/params"
+	"github.com/fatal-fruit/proton/app"
 )
 
 // NewRootCmd creates a new root command for a Cosmos SDK application
-func NewRootCmd() (*cobra.Command, appparams.EncodingConfig) {
-	encodingConfig := app.MakeEncodingConfig()
+func NewRootCmd() (*cobra.Command, app.EncodingConfig) {
+	encodingConfig := app.RegisterEncodingConfig()
 
 	// Set config
 	cnfg := sdk.GetConfig()
-	accountPubKeyPrefix := app.Bech32AddressPrefix + "pub"
-	validatorAddressPrefix := app.Bech32AddressPrefix + "valoper"
-	validatorPubKeyPrefix := app.Bech32AddressPrefix + "valoperpub"
-	consNodeAddressPrefix := app.Bech32AddressPrefix + "valcons"
-	consNodePubKeyPrefix := app.Bech32AddressPrefix + "valconspub"
-
-	// Set and seal config
-	cnfg.SetBech32PrefixForAccount(app.Bech32AddressPrefix, accountPubKeyPrefix)
-	cnfg.SetBech32PrefixForValidator(validatorAddressPrefix, validatorPubKeyPrefix)
-	cnfg.SetBech32PrefixForConsensusNode(consNodeAddressPrefix, consNodePubKeyPrefix)
-	cnfg.SetAddressVerifier(nil)
-	cnfg.Seal()
+	configureBech32(cnfg)
 
 	initClientCtx := client.Context{}.
-		WithCodec(encodingConfig.Codec).
+		WithCodec(encodingConfig.Marshaler).
 		WithInterfaceRegistry(encodingConfig.InterfaceRegistry).
 		WithTxConfig(encodingConfig.TxConfig).
 		WithLegacyAmino(encodingConfig.Amino).
@@ -90,7 +78,7 @@ func NewRootCmd() (*cobra.Command, appparams.EncodingConfig) {
 		},
 	}
 
-	initRootCmd(rootCmd, encodingConfig)
+	initRootCmd(rootCmd, encodingConfig, cnfg)
 
 	return rootCmd, encodingConfig
 }
@@ -100,6 +88,20 @@ func NewRootCmd() (*cobra.Command, appparams.EncodingConfig) {
 func initTendermintConfig() *tmcfg.Config {
 	cfg := tmcfg.DefaultConfig()
 	return cfg
+}
+
+func configureBech32(sdkConfig *sdk.Config) {
+	accountPubKeyPrefix := app.Bech32AddressPrefix + "pub"
+	validatorAddressPrefix := app.Bech32AddressPrefix + "valoper"
+	validatorPubKeyPrefix := app.Bech32AddressPrefix + "valoperpub"
+	consNodeAddressPrefix := app.Bech32AddressPrefix + "valcons"
+	consNodePubKeyPrefix := app.Bech32AddressPrefix + "valconspub"
+
+	// Set and seal config
+	sdkConfig.SetBech32PrefixForAccount(app.Bech32AddressPrefix, accountPubKeyPrefix)
+	sdkConfig.SetBech32PrefixForValidator(validatorAddressPrefix, validatorPubKeyPrefix)
+	sdkConfig.SetBech32PrefixForConsensusNode(consNodeAddressPrefix, consNodePubKeyPrefix)
+	sdkConfig.SetAddressVerifier(nil)
 }
 
 // initAppConfig helps to override default appConfig template and configs.
@@ -124,18 +126,19 @@ func initAppConfig() (string, interface{}) {
 	return customAppTemplate, customAppConfig
 }
 
-func initRootCmd(rootCmd *cobra.Command, encodingConfig appparams.EncodingConfig) {
-	cfg := sdk.GetConfig()
-	cfg.Seal()
+func initRootCmd(rootCmd *cobra.Command, encodingConfig app.EncodingConfig, sdkConfig *sdk.Config) {
+	sdkConfig.Seal()
+
+	ac := appCreator{encodingConfig}
 
 	rootCmd.AddCommand(
 		genutilcli.InitCmd(app.ModuleBasics, app.DefaultNodeHome),
 		debug.Cmd(),
 		config.Cmd(),
-		pruning.PruningCmd(newApp),
+		pruning.PruningCmd(ac.newApp),
 	)
 
-	server.AddCommands(rootCmd, app.DefaultNodeHome, newApp, appExport, addModuleInitFlags)
+	server.AddCommands(rootCmd, app.DefaultNodeHome, ac.newApp, ac.appExport, addModuleInitFlags)
 
 	// add keybase, auxiliary RPC, query, genesis, and tx child commands
 	rootCmd.AddCommand(
@@ -147,7 +150,7 @@ func initRootCmd(rootCmd *cobra.Command, encodingConfig appparams.EncodingConfig
 	)
 
 	// add rosetta
-	rootCmd.AddCommand(rosettaCmd.RosettaCommand(encodingConfig.InterfaceRegistry, encodingConfig.Codec))
+	rootCmd.AddCommand(rosettaCmd.RosettaCommand(encodingConfig.InterfaceRegistry, encodingConfig.Marshaler))
 }
 
 // queryCommand returns the sub-command to send queries to the app
@@ -207,7 +210,7 @@ func addModuleInitFlags(startCmd *cobra.Command) {
 }
 
 // genesisCommand builds genesis-related `simd genesis` command. Users may provide application specific commands as a parameter
-func genesisCommand(encodingConfig appparams.EncodingConfig, cmds ...*cobra.Command) *cobra.Command {
+func genesisCommand(encodingConfig app.EncodingConfig, cmds ...*cobra.Command) *cobra.Command {
 	cmd := genutilcli.GenesisCoreCommand(encodingConfig.TxConfig, app.ModuleBasics, app.DefaultNodeHome)
 
 	for _, sub_cmd := range cmds {
@@ -216,29 +219,11 @@ func genesisCommand(encodingConfig appparams.EncodingConfig, cmds ...*cobra.Comm
 	return cmd
 }
 
-//
-//func overwriteFlagDefaults(c *cobra.Command, defaults map[string]string) {
-//	set := func(s *pflag.FlagSet, key, val string) {
-//		if f := s.Lookup(key); f != nil {
-//			f.DefValue = val
-//			f.Value.Set(val)
-//		}
-//	}
-//	for key, val := range defaults {
-//		set(c.Flags(), key, val)
-//		set(c.PersistentFlags(), key, val)
-//	}
-//	for _, c := range c.Commands() {
-//		overwriteFlagDefaults(c, defaults)
-//	}
-//}
-
 type appCreator struct {
-	encodingConfig appparams.EncodingConfig
+	encCfg app.EncodingConfig
 }
 
-// / newApp creates the application
-func newApp(
+func (a appCreator) newApp(
 	logger log.Logger,
 	db dbm.DB,
 	traceStore io.Writer,
@@ -252,12 +237,13 @@ func newApp(
 		traceStore,
 		true,
 		appOpts,
+		a.encCfg,
 		baseappOptions...,
 	)
 }
 
 // appExport creates a new simapp (optionally at a given height) and exports state.
-func appExport(
+func (a appCreator) appExport(
 	logger log.Logger,
 	db dbm.DB,
 	traceStore io.Writer,
@@ -286,13 +272,13 @@ func appExport(
 	appOpts = viperAppOpts
 
 	if height != -1 {
-		protonApp = app.NewProtonApp(logger, db, traceStore, false, appOpts)
+		protonApp = app.NewProtonApp(logger, db, traceStore, false, appOpts, a.encCfg)
 
 		if err := protonApp.LoadHeight(height); err != nil {
 			return servertypes.ExportedApp{}, err
 		}
 	} else {
-		protonApp = app.NewProtonApp(logger, db, traceStore, true, appOpts)
+		protonApp = app.NewProtonApp(logger, db, traceStore, true, appOpts, a.encCfg)
 	}
 
 	return protonApp.ExportAppStateAndValidators(forZeroHeight, jailAllowedAddrs, modulesToExport)

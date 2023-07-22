@@ -1,7 +1,6 @@
 package app
 
 import (
-	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authsims "github.com/cosmos/cosmos-sdk/x/auth/simulation"
@@ -55,7 +54,6 @@ import (
 	ibcclientclient "github.com/cosmos/ibc-go/v7/modules/core/02-client/client"
 	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 	ibctm "github.com/cosmos/ibc-go/v7/modules/light-clients/07-tendermint"
-	appparams "proton/app/params"
 )
 
 var (
@@ -114,10 +112,11 @@ var (
 
 func appModules(
 	app *ProtonApp,
-	encodingConfig appparams.EncodingConfig,
+	encodingConfig EncodingConfig,
 	skipGenesisInvariants bool,
-	appCodec codec.Codec,
 ) []module.AppModule {
+	appCodec := encodingConfig.Marshaler
+
 	return []module.AppModule{
 		genutil.NewAppModule(
 			app.AccountKeeper,

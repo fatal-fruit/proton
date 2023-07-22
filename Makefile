@@ -80,7 +80,7 @@ ifeq (,$(findstring nostrip,$(PROTON_BUILD_OPTIONS)))
   BUILD_FLAGS += -trimpath
 endif
 
-all: proto-gen lint test install
+all: lint test install
 
 
 ###############################################################################
@@ -117,16 +117,25 @@ distclean: clean
 ###############################################################################
 ###                                Linting                                  ###
 ###############################################################################
-
-golangci_lint_cmd=github.com/golangci/golangci-lint/cmd/golangci-lint
+golangci_lint_cmd=golangci-lint
+golangci_version=v1.52.2
 
 lint:
 	@echo "--> Running linter"
-	@go run $(golangci_lint_cmd) run --timeout=10m
+	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(golangci_version)
+	@$(golangci_lint_cmd) run --timeout=10m
+
+lint-fix:
+	@echo "--> Running linter"
+	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(golangci_version)
+	@$(golangci_lint_cmd) run --fix --out-format=tab --issues-exit-code=0
 
 format:
-	@go run $(golangci_lint_cmd) run ./... --fix
-	@go run mvdan.cc/gofumpt -l -w x/ app/ tests/
+	@go install mvdan.cc/gofumpt@latest
+	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(golangci_version)
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -path "./client/docs/statik/statik.go" -not -path "./tests/mocks/*" -not -name "*.pb.go" -not -name "*.pb.gw.go" -not -name "*.pulsar.go" -not -path "./crypto/keys/secp256k1/*" | xargs gofumpt -w -l
+	$(golangci_lint_cmd) run --fix
+.PHONY: format
 
 
 ###############################################################################
